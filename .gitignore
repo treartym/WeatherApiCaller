@@ -1,6 +1,7 @@
 __pycache__/
 *.py[cod]
 .env
+backfillWeather.py
 serviceAccountKey.json
 
 #caches
