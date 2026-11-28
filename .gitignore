@@ -3,6 +3,7 @@ __pycache__/
 .env
 backfillWeatherData.py
 serviceAccountKey.json
+mockData.py
 
 #caches
 .pytest_cache/

@@ -66,3 +66,9 @@ def saveStats(stats):
         for k in fields:
             fields[k] = fixTypes(fields[k])
         db.collection("libraryStats").document(lib).set(fields)
+
+
+def clearLive():
+    for doc in db.collection("libraryStats").stream():
+        if doc.to_dict().get("LiveBusy") is not None:
+            doc.reference.update({"LiveBusy": None})

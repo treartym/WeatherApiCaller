@@ -1,3 +1,4 @@
+import sys
 from datetime import datetime, timedelta, timezone
 import numpy as np
 import pandas as pd
@@ -26,7 +27,10 @@ def makeWindows(readings, weather):
 
 
 def normalise(windows):
-    referenceID = windows["Device_ID"].value_counts().idxmax()
+    real = windows[windows["Device_ID"] != "mock"]  #mock data can never be the reference
+    if real.empty:
+        real = windows
+    referenceID = real["Device_ID"].value_counts().idxmax()
     reference = windows[windows["Device_ID"] == referenceID][["Library", "Floor", "Slot", "Noise", "Brightness"]]
     merged = windows.merge(reference, on=["Library", "Floor", "Slot"], suffixes=("", "ref"))
 
@@ -53,6 +57,8 @@ def libraryStats(windows, now):
             stat["Slope"], stat["Baseline"] = round(float(slope), 3), round(float(base), 1)
 
         stat["Hours"] = {str(h): round(float(b), 3) for h, b in g.groupby("Hour")["Busy"].mean().items()}
+        light = g.groupby("Hour")["Brightness"].mean().dropna()
+        stat["LightHours"] = {str(h): round(float(b), 1) for h, b in light.items()}
         live = g[g["Slot"] >= now - timedelta(minutes=30)]
         stat["LiveBusy"] = round(float(live["Busy"].mean()), 3) if len(live) else None
 
@@ -71,8 +77,11 @@ if __name__ == "__main__":
         db.saveWindows(windows)
         print("saved", len(windows), "windows from", len(readings), "readings")
 
-    windows = db.fetch("windows")
-    if not windows.empty:
-        db.saveStats(libraryStats(normalise(windows), now))
+    if not readings.empty or "--force" in sys.argv:
+        windows = db.fetch("windows")
+        if not windows.empty:
+            db.saveStats(libraryStats(normalise(windows), now))
+    else:
+        db.clearLive()
 
     db.setLastRun(now)
